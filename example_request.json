@@ -1,0 +1,10 @@
+[
+    {
+        "to_email": "sname@spotsylvania.k12.va.us",
+        "cc_emails": ["email1@example.com", "email2@example.com"], 
+        "bcc_emails": ["email3@example.com", "email4@example.com"],
+        "subject": "Some Subject Line Here",
+        "body": "<h1>Email Body</h1><p>Hello World</p>", //Accept HTML? CSRF Protected
+        "send_time_offset": "5", // in minutes
+    }
+]
