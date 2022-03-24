@@ -36,6 +36,7 @@ lazy_static! {
 }
 
 mod models;
+mod util;
 
 #[post("/send_email", format = "application/json", data = "<email_requests>")]
 pub async fn send_email(
@@ -45,9 +46,11 @@ pub async fn send_email(
 
     let errors = Arc::new(Mutex::new(Vec::new()));
 
+    let from: lettre::message::Mailbox = FROM_EMAIL.clone().parse().unwrap();
+
     email_requests.par_iter().for_each(|email_request| {
         match Message::builder()
-            .from(FROM_EMAIL.clone().parse().unwrap())
+            .from(from.clone())
             .to(email_request.to_email.parse().unwrap())
             .subject(&email_request.subject)
             .body(email_request.body.clone())
@@ -79,6 +82,7 @@ pub async fn send_email(
 async fn main() {
     match rocket::build()
         .mount("/", routes![send_email])
+        .attach(util::CORS)
         .launch()
         .await
     {
