@@ -1,0 +1,11 @@
+version: '3.7'
+
+services:
+  rhs_mailer:
+    container_name: rhs_mailer
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:9999"
+    restart: unless-stopped
