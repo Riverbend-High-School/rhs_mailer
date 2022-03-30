@@ -6,6 +6,5 @@ pub struct email_request {
     pub cc_emails: Option<Vec<String>>,
     pub bcc_emails: Option<Vec<String>>,
     pub subject: String,
-    pub body: String,                  //Accept HTML? CSRF Protected
-    pub send_time_offset: Option<i32>, // in minutes
+    pub body: String, //Accept HTML? CSRF Protected
 }

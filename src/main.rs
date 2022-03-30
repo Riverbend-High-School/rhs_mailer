@@ -1,12 +1,14 @@
-use rocket::routes;
-use rocket::serde::{self, Deserialize, Serialize};
-
 use dotenv::dotenv;
+use lettre::message::{header, SinglePart};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
-use rayon::prelude::*;
+use rocket::response::content::Json;
+use rocket::routes;
+use rocket::serde::{self, Deserialize, Serialize};
+use serde_json::json;
 use std::env;
 use std::sync::{Arc, Mutex};
+use std::thread::sleep;
 
 #[macro_use]
 extern crate rocket;
@@ -35,51 +37,62 @@ lazy_static! {
         .build();
 }
 
+mod auth;
 mod models;
 mod util;
 
 #[post("/send_email", format = "application/json", data = "<email_requests>")]
 pub async fn send_email(
+    _token: auth::Token,
     email_requests: serde::json::Json<Vec<models::email_request>>,
-) -> Option<()> {
+) -> Json<String> {
     let mailer = MAILER.to_owned();
 
-    let errors = Arc::new(Mutex::new(Vec::new()));
+    let mut errors = Vec::new();
 
     let from: lettre::message::Mailbox = FROM_EMAIL.clone().parse().unwrap();
+    let one_second = std::time::Duration::from_secs(1);
 
-    email_requests.par_iter().for_each(|email_request| {
+    info!("Sending {} emails", email_requests.len());
+
+    email_requests.iter().for_each(|email_request| {
         match Message::builder()
             .from(from.clone())
             .to(email_request.to_email.parse().unwrap())
             .subject(&email_request.subject)
-            .body(email_request.body.clone())
-        {
+            .singlepart(
+                SinglePart::builder()
+                    .header(header::ContentType::TEXT_HTML)
+                    .body(email_request.body.clone()),
+            ) {
             Ok(message) => {
                 if let Err(e) = mailer.send(&message) {
-                    println!("Message attempted to send with error: {}", e);
-                    errors.lock().unwrap().push(email_request);
+                    warn!("Message attempted to send with error: {}", e);
+                    errors.push(email_request);
                 }
             }
             Err(e) => {
-                println!("Failed to build message with error: {}", e);
-                errors.lock().unwrap().push(email_request);
+                warn!("Failed to build message with error: {}", e);
+                errors.push(email_request);
             }
         }
+        sleep(one_second);
     });
 
-    let num_errors = errors.lock().unwrap().len();
+    let num_errors = errors.len();
 
     if num_errors > 0 {
-        println!("{} errors occurred", num_errors);
-        None
+        warn!("{} errors occurred when sending emails!", num_errors);
+        make_json_response!(500, format!("Had {} errors", num_errors), errors)
     } else {
-        Some(())
+        make_json_response!(200, "Successfully sent emails!")
     }
 }
 
 #[rocket::main]
 async fn main() {
+    dotenv().ok();
+
     match rocket::build()
         .mount("/", routes![send_email])
         .attach(util::CORS)

@@ -2,6 +2,23 @@ use rocket::fairing::{Fairing, Info, Kind};
 use rocket::http::Header;
 use rocket::{Request, Response};
 
+#[macro_export]
+macro_rules! make_json_response {
+    ($status:expr, $message:expr, $data:expr) => {
+        Json(json!({
+            "status": $status as i32,
+            "message": $message,
+            "data": $data,
+        }).to_string())
+    };
+    ($status:expr, $message:expr) => {
+        Json(json!({
+            "status": $status as i32,
+            "message": $message,
+        }).to_string())
+    }
+}
+
 pub struct CORS;
 
 #[rocket::async_trait]

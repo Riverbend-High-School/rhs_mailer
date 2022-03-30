@@ -2,10 +2,15 @@ version: '3.7'
 
 services:
   rhs_mailer:
-    container_name: rhs_mailer
     build:
       context: .
       dockerfile: Dockerfile
     ports:
       - "80:9999"
+    environment:
+      FROM_EMAIL: FROM_EMAIL
+      SMTP_USERNAME: SMTP_USERNAME
+      SMTP_PASSWORD: SMTP_PASSWORD
+      SMTP_SERVER: SMTP_SERVER
+      AUTH_TOKEN: AUTH_TOKEN
     restart: unless-stopped
